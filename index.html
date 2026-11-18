@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Aviation — Student login</title>
+<style>
+  :root{
+    --navy:#0b1f3a; --navy2:#12345e; --sky:#3d8bfd; --sky-soft:#e8f1ff;
+    --ink:#14213d; --muted:#5b6b82; --line:#d9e1ec; --bad:#c0392b; --bad-soft:#fdecea;
+    --good:#1e8449; --good-soft:#e9f7ef; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--navy)}
+  [hidden]{display:none!important}
+
+  /* ---------- Login screen ---------- */
+  #auth{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:
+      repeating-linear-gradient(90deg,transparent 0 46px,rgba(255,255,255,.05) 46px 50px) center bottom/100% 3px no-repeat,
+      radial-gradient(1200px 600px at 80% -10%,#1d4f8f 0,transparent 60%),
+      linear-gradient(160deg,var(--navy) 0,var(--navy2) 100%);}
+  .card{width:100%;max-width:420px;background:#fff;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
+  .head{padding:26px 28px 18px;background:linear-gradient(135deg,#0f2b52,#1a4a86);color:#fff;position:relative}
+  .head h1{margin:0;font-size:22px;letter-spacing:.2px}
+  .head p{margin:6px 0 0;opacity:.85;font-size:14px}
+  .plane{position:absolute;right:22px;top:22px;width:40px;height:40px;opacity:.9}
+  .langs{display:flex;gap:6px;margin-top:14px}
+  .langs button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
+  .langs button[aria-pressed="true"]{background:#fff;color:var(--navy)}
+  .tabs{display:flex;border-bottom:1px solid var(--line)}
+  .tabs button{flex:1;padding:13px 8px;border:0;background:#fff;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent}
+  .tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--sky)}
+  form{padding:22px 28px 26px}
+  label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+  input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:15px}
+  input:focus{outline:none;border-color:var(--sky);box-shadow:0 0 0 3px var(--sky-soft)}
+  .btn{width:100%;margin-top:18px;padding:12px;border:0;border-radius:10px;background:var(--sky);color:#fff;font:inherit;font-weight:600;font-size:15px;cursor:pointer}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .hint{font-size:13px;color:var(--muted);margin:0 0 4px;line-height:1.45}
+  .msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.4}
+  .msg.bad{background:var(--bad-soft);color:var(--bad)}
+  .msg.good{background:var(--good-soft);color:var(--good)}
+  .foot{padding:0 28px 22px;font-size:12px;color:var(--muted);line-height:1.45}
+
+  /* ---------- Content screen ---------- */
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;background:#fff}
+  .bar{height:40px;flex:0 0 40px;display:flex;align-items:center;gap:12px;padding:0 14px;background:var(--navy);color:#fff;font-size:13px}
+  .bar .who{opacity:.85;margin-left:auto}
+  .bar a,.bar button{color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
+  #frame{flex:1;width:100%;border:0}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;background:var(--navy);font-size:15px}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading…</div>
+
+<!-- ===================== LOGIN / ACTIVATION ===================== -->
+<main id="auth" hidden>
+  <div class="card">
+    <div class="head">
+      <svg class="plane" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+      <h1 id="siteTitle">Aviation</h1>
+      <p data-t="subtitle"></p>
+      <div class="langs" role="group" aria-label="Language">
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="ru">RU</button>
+        <button type="button" data-lang="uz">UZ</button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true" data-t="tab_login"></button>
+      <button type="button" role="tab" id="tabActivate" aria-selected="false" data-t="tab_activate"></button>
+    </div>
+
+    <form id="formLogin" autocomplete="on" novalidate>
+      <label for="loginId" data-t="student_id"></label>
+      <input id="loginId" name="username" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="AE17083" required>
+      <label for="loginPw" data-t="password"></label>
+      <input id="loginPw" name="password" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit" data-t="btn_login"></button>
+      <div id="msgLogin" class="msg" hidden></div>
+    </form>
+
+    <form id="formActivate" autocomplete="off" novalidate hidden>
+      <p class="hint" data-t="hint_activate"></p>
+      <label for="actId" data-t="student_id"></label>
+      <input id="actId" name="username" autocomplete="username" autocapitalize="characters" spellcheck="false" placeholder="AE17083" required>
+      <label for="actCode" data-t="code"></label>
+      <input id="actCode" autocapitalize="characters" spellcheck="false" placeholder="XXXXX-XXXXX" required>
+      <label for="actPw" data-t="new_password"></label>
+      <input id="actPw" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="actPw2" data-t="repeat_password"></label>
+      <input id="actPw2" type="password" autocomplete="new-password" minlength="8" required>
+      <button class="btn" type="submit" data-t="btn_activate"></button>
+      <div id="msgActivate" class="msg" hidden></div>
+    </form>
+
+    <div class="foot" data-t="forgot"></div>
+  </div>
+</main>
+
+<!-- ===================== COURSE CONTENT ===================== -->
+<div id="app" hidden>
+  <div class="bar">
+    <strong>✈ <span id="barTitle"></span></strong>
+    <span class="who" id="who"></span>
+    <a href="admin.html" id="adminLink" hidden data-t="admin"></a>
+    <button type="button" id="logoutBtn" data-t="logout"></button>
+  </div>
+  <iframe id="frame" title="Course"></iframe>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  const CFG = window.SITE_CONFIG || {};
+  const $ = (id) => document.getElementById(id);
+
+  // ---------------- Texts in 3 languages ----------------
+  const T = {
+    en: {
+      subtitle: "Private site for Aviation students",
+      tab_login: "Log in", tab_activate: "First time / New code",
+      student_id: "Student ID", password: "Password", code: "Activation code",
+      new_password: "New password (at least 8 characters)", repeat_password: "Repeat password",
+      btn_login: "Log in", btn_activate: "Activate and set password",
+      hint_activate: "Enter the code you received from the administrator. A code works only once and expires.",
+      forgot: "Forgot your password? Ask the administrator for a new code, then use “First time / New code”.",
+      login_failed: "Wrong student ID or password.",
+      not_active: "Your access is not active. Please contact the administrator.",
+      invalid: "Wrong student ID or code.", attempts_left: "Attempts left: {n}",
+      locked: "Too many wrong tries — this code is locked. Ask the administrator for a new code.",
+      expired: "This code has expired. Ask the administrator for a new one.",
+      weak_password: "Password must be at least 8 characters.", mismatch: "Passwords do not match.",
+      fill_all: "Please fill in all fields.",
+      server: "Server error. Please try again later.", network: "No connection. Check your internet.",
+      content_missing: "The course content is not uploaded yet.",
+      activated: "Account activated! Logging you in…", reset: "Password changed! Logging you in…",
+      loading: "Loading…", logout: "Log out", admin: "Admin",
+      config_missing: "The site is not configured yet (config.js).",
+    },
+    ru: {
+      subtitle: "Закрытый сайт для студентов направления «Авиация»",
+      tab_login: "Вход", tab_activate: "Первый вход / Новый код",
+      student_id: "Студенческий ID", password: "Пароль", code: "Код активации",
+      new_password: "Новый пароль (не меньше 8 символов)", repeat_password: "Повторите пароль",
+      btn_login: "Войти", btn_activate: "Активировать и задать пароль",
+      hint_activate: "Введите код, который вы получили от администратора. Код одноразовый и действует ограниченное время.",
+      forgot: "Забыли пароль? Попросите у администратора новый код и откройте вкладку «Первый вход / Новый код».",
+      login_failed: "Неверный ID или пароль.",
+      not_active: "Ваш доступ не активен. Обратитесь к администратору.",
+      invalid: "Неверный ID или код.", attempts_left: "Осталось попыток: {n}",
+      locked: "Слишком много неверных попыток — код заблокирован. Попросите у администратора новый код.",
+      expired: "Срок действия кода истёк. Попросите у администратора новый.",
+      weak_password: "Пароль должен быть не короче 8 символов.", mismatch: "Пароли не совпадают.",
+      fill_all: "Заполните все поля.",
+      server: "Ошибка сервера. Попробуйте позже.", network: "Нет соединения. Проверьте интернет.",
+      content_missing: "Материалы курса ещё не загружены.",
+      activated: "Аккаунт активирован! Выполняем вход…", reset: "Пароль изменён! Выполняем вход…",
+      loading: "Загрузка…", logout: "Выйти", admin: "Админ",
+      config_missing: "Сайт ещё не настроен (config.js).",
+    },
+    uz: {
+      subtitle: "«Aviatsiya» yo‘nalishi talabalari uchun yopiq sayt",
+      tab_login: "Kirish", tab_activate: "Birinchi kirish / Yangi kod",
+      student_id: "Talaba ID raqami", password: "Parol", code: "Faollashtirish kodi",
+      new_password: "Yangi parol (kamida 8 ta belgi)", repeat_password: "Parolni takrorlang",
+      btn_login: "Kirish", btn_activate: "Faollashtirish va parol o‘rnatish",
+      hint_activate: "Administratordan olgan kodingizni kiriting. Kod bir martalik va muddati cheklangan.",
+      forgot: "Parolni unutdingizmi? Administratordan yangi kod so‘rang va «Birinchi kirish / Yangi kod» bo‘limini oching.",
+      login_failed: "ID yoki parol noto‘g‘ri.",
+      not_active: "Sizning kirish huquqingiz faol emas. Administratorga murojaat qiling.",
+      invalid: "ID yoki kod noto‘g‘ri.", attempts_left: "Qolgan urinishlar: {n}",
+      locked: "Noto‘g‘ri urinishlar juda ko‘p — kod bloklandi. Administratordan yangi kod so‘rang.",
+      expired: "Kodning muddati tugagan. Administratordan yangisini so‘rang.",
+      weak_password: "Parol kamida 8 ta belgidan iborat bo‘lishi kerak.", mismatch: "Parollar mos kelmadi.",
+      fill_all: "Barcha maydonlarni to‘ldiring.",
+      server: "Server xatosi. Keyinroq urinib ko‘ring.", network: "Aloqa yo‘q. Internetni tekshiring.",
+      content_missing: "Kurs materiallari hali yuklanmagan.",
+      activated: "Hisob faollashtirildi! Kirilmoqda…", reset: "Parol o‘zgartirildi! Kirilmoqda…",
+      loading: "Yuklanmoqda…", logout: "Chiqish", admin: "Admin",
+      config_missing: "Sayt hali sozlanmagan (config.js).",
+    },
+  };
+  let lang = "en";
+  try { lang = localStorage.getItem("site_lang") || (navigator.language || "en").slice(0, 2); } catch (_) {}
+  if (!T[lang]) lang = "en";
+  const t = (k, vars) => {
+    let s = (T[lang] && T[lang][k]) || T.en[k] || k;
+    if (vars) for (const v in vars) s = s.replace("{" + v + "}", vars[v]);
+    return s;
+  };
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t(el.dataset.t); });
+    document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+    $("loading").textContent = t("loading");
+  }
+  document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => {
+    lang = b.dataset.lang;
+    try { localStorage.setItem("site_lang", lang); } catch (_) {}
+    applyLang();
+  }));
+
+  // ---------------- Helpers ----------------
+  const normId = (s) => String(s || "").trim().toUpperCase().replace(/\s+/g, "");
+  const idToEmail = (id) => "s-" + id.toLowerCase() + "@" + CFG.EMAIL_DOMAIN;
+  function show(el, text, kind) {
+    el.textContent = text; el.className = "msg " + (kind || "bad"); el.hidden = !text;
+  }
+  function busy(form, on) { form.querySelector("button[type=submit]").disabled = on; }
+  function screen(name) {
+    $("loading").hidden = name !== "loading";
+    $("auth").hidden = name !== "auth";
+    $("app").hidden = name !== "app";
+  }
+
+  $("siteTitle").textContent = CFG.SITE_TITLE || "Aviation";
+  $("barTitle").textContent = CFG.SITE_TITLE || "Aviation";
+  applyLang();
+
+  if (!window.supabase || !CFG.SUPABASE_URL || /YOUR-PROJECT|PASTE_HERE/.test(CFG.SUPABASE_URL + CFG.SUPABASE_PUBLISHABLE_KEY)) {
+    screen("auth");
+    show($("msgLogin"), t("config_missing"));
+    return;
+  }
+  const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_PUBLISHABLE_KEY);
+
+  // ---------------- Tabs ----------------
+  function tab(which) {
+    const login = which === "login";
+    $("tabLogin").setAttribute("aria-selected", String(login));
+    $("tabActivate").setAttribute("aria-selected", String(!login));
+    $("formLogin").hidden = !login;
+    $("formActivate").hidden = login;
+  }
+  $("tabLogin").onclick = () => tab("login");
+  $("tabActivate").onclick = () => tab("activate");
+
+  // ---------------- Load protected content (server checks permission) ----------------
+  async function enterSite() {
+    screen("loading");
+    const { data: me, error: meErr } = await sb.from("students")
+      .select("student_id, is_admin, is_active").maybeSingle();
+    if (meErr || !me || !me.is_active) {
+      await sb.auth.signOut();
+      screen("auth");
+      show($("msgLogin"), meErr ? t("server") : t("not_active"));
+      return;
+    }
+    if (new URLSearchParams(location.search).get("next") === "admin" && me.is_admin) {
+      location.href = "admin.html"; return;
+    }
+    // Short-lived private link (server checks permission), then fetch without cache → always the newest version
+    let html = null;
+    const { data: link } = await sb.storage.from(CFG.CONTENT_BUCKET).createSignedUrl(CFG.CONTENT_FILE, 120);
+    if (link && link.signedUrl) {
+      try {
+        const r = await fetch(link.signedUrl, { cache: "no-store" });
+        if (r.ok) html = await r.text();
+      } catch (_) {}
+    }
+    if (!html) {
+      screen("auth");
+      show($("msgLogin"), t("content_missing"));
+      return;
+    }
+    // Music lives in the same private bucket; give the page short-lived links (only for logged-in students)
+    const musicFiles = CFG.MUSIC_FILES || [];
+    if (musicFiles.length) {
+      const { data: signed } = await sb.storage.from(CFG.CONTENT_BUCKET).createSignedUrls(musicFiles, 60 * 60 * 12);
+      const urls = (signed || []).map((x) => (x && x.signedUrl) || "");
+      const inject = "<script>window.MUSIC_DATA=" + JSON.stringify(urls).replace(/</g, "\\u003c") + ";<\/script>";
+      html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (m) => m + inject) : inject + html;
+    }
+    $("who").textContent = me.student_id;
+    $("adminLink").hidden = !me.is_admin;
+    const frame = $("frame");
+    frame.onload = () => {
+      try {
+        const d = frame.contentDocument;
+        if (d && d.title) document.title = d.title;
+        // External links open in a new tab; links inside the page keep working
+        d.addEventListener("click", (e) => {
+          const a = e.target.closest && e.target.closest("a[href]");
+          if (!a) return;
+          const href = a.getAttribute("href") || "";
+          if (/^(https?:)?\/\//i.test(href)) { e.preventDefault(); window.open(a.href, "_blank", "noopener"); }
+        });
+      } catch (_) {}
+    };
+    frame.srcdoc = html;
+    screen("app");
+  }
+
+  // ---------------- Log in ----------------
+  $("formLogin").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("msgLogin"); show(msg, "");
+    const id = normId($("loginId").value), pw = $("loginPw").value;
+    if (!id || !pw) return show(msg, t("fill_all"));
+    busy(e.target, true);
+    const { error } = await sb.auth.signInWithPassword({ email: idToEmail(id), password: pw });
+    busy(e.target, false);
+    if (error) return show(msg, /fetch|network/i.test(error.message) ? t("network") : t("login_failed"));
+    $("loginPw").value = "";
+    enterSite();
+  });
+
+  // ---------------- Activate / new password ----------------
+  $("formActivate").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msg = $("msgActivate"); show(msg, "");
+    const id = normId($("actId").value), code = $("actCode").value.trim();
+    const pw = $("actPw").value, pw2 = $("actPw2").value;
+    if (!id || !code || !pw) return show(msg, t("fill_all"));
+    if (pw.length < 8) return show(msg, t("weak_password"));
+    if (pw !== pw2) return show(msg, t("mismatch"));
+    busy(e.target, true);
+    let res;
+    try {
+      const r = await fetch(CFG.SUPABASE_URL + "/functions/v1/" + (CFG.ACTIVATE_FUNCTION || "activate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.SUPABASE_PUBLISHABLE_KEY },
+        body: JSON.stringify({ student_id: id, code, password: pw }),
+      });
+      res = await r.json().catch(() => ({ ok: false, error: "server" }));
+    } catch (_) {
+      busy(e.target, false); return show(msg, t("network"));
+    }
+    if (!res.ok) {
+      busy(e.target, false);
+      let text = t(res.error in T.en ? res.error : "server");
+      if (res.error === "invalid" && typeof res.attempts_left === "number") text += " " + t("attempts_left", { n: res.attempts_left });
+      return show(msg, text);
+    }
+    show(msg, t(res.mode === "reset" ? "reset" : "activated"), "good");
+    const { error } = await sb.auth.signInWithPassword({ email: idToEmail(id), password: pw });
+    busy(e.target, false);
+    $("actPw").value = $("actPw2").value = $("actCode").value = "";
+    if (error) { tab("login"); $("loginId").value = id; return show($("msgLogin"), t("login_failed")); }
+    enterSite();
+  });
+
+  // ---------------- Log out ----------------
+  $("logoutBtn").onclick = async () => {
+    await sb.auth.signOut();
+    $("frame").srcdoc = "";
+    document.title = "Aviation — Student login";
+    screen("auth"); tab("login");
+  };
+
+  // ---------------- Start ----------------
+  sb.auth.getSession().then(({ data }) => {
+    if (data && data.session) enterSite(); else screen("auth");
+  });
+})();
+</script>
+</body>
+</html>

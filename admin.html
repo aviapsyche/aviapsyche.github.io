@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Aviation — Admin</title>
+<style>
+  :root{--navy:#0b1f3a;--sky:#3d8bfd;--ink:#14213d;--muted:#5b6b82;--line:#d9e1ec;--bg:#f4f7fb;
+    --good:#1e8449;--good-soft:#e9f7ef;--warn:#9a6700;--warn-soft:#fff6db;--bad:#c0392b;--bad-soft:#fdecea;--grey-soft:#eef1f5}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:14px}
+  [hidden]{display:none!important}
+  header{background:var(--navy);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:14px}
+  header h1{font-size:17px;margin:0}
+  header .sp{flex:1}
+  header a,header button{color:#fff;background:rgba(255,255,255,.12);border:0;border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer;text-decoration:none}
+  main{max-width:1150px;margin:0 auto;padding:20px}
+  .notice{background:#fff;border:1px solid var(--line);border-radius:12px;padding:22px;text-align:center}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat b{display:block;font-size:24px}
+  .stat span{color:var(--muted);font-size:13px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .panel h2{font-size:15px;margin:0 0 10px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  textarea{width:100%;min-height:110px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+  .btn{border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;background:var(--sky);color:#fff}
+  .btn.ghost{background:var(--grey-soft);color:var(--ink)}
+  .btn.small{padding:5px 10px;font-size:13px;font-weight:500}
+  .btn.danger{background:var(--bad-soft);color:var(--bad)}
+  .btn:disabled{opacity:.55;cursor:wait}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;background:#fafcff;position:sticky;top:0}
+  .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px;max-height:65vh}
+  .pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .p-good{background:var(--good-soft);color:var(--good)} .p-warn{background:var(--warn-soft);color:var(--warn)}
+  .p-bad{background:var(--bad-soft);color:var(--bad)} .p-grey{background:var(--grey-soft);color:var(--muted)}
+  .muted{color:var(--muted)}
+  .codes{border:2px dashed var(--sky);background:#f5f9ff}
+  .codeline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .codeline code{font-size:16px;font-weight:700;letter-spacing:1px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+  .msg{margin-top:10px;font-size:13px}
+  .msg.bad{color:var(--bad)} .msg.good{color:var(--good)}
+</style>
+</head>
+<body>
+<header>
+  <h1>✈ Admin — <span id="siteTitle"></span></h1>
+  <span class="sp"></span>
+  <span id="me" class="muted" style="color:#cfe0ff"></span>
+  <a href="index.html">Open site</a>
+  <button type="button" id="logoutBtn">Log out</button>
+</header>
+
+<main>
+  <div id="gate" class="notice">Loading…</div>
+
+  <div id="dash" hidden>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">0</b><span>On the allowed list</span></div>
+      <div class="stat"><b id="sActive">0</b><span>Activated accounts</span></div>
+      <div class="stat"><b id="sWaiting">0</b><span>Not activated yet</span></div>
+      <div class="stat"><b id="sCodes">0</b><span>Codes waiting to be used</span></div>
+      <div class="stat"><b id="sBlocked">0</b><span>Blocked</span></div>
+    </div>
+
+    <!-- New codes appear here (shown only once!) -->
+    <div class="panel codes" id="codesPanel" hidden>
+      <h2>New codes — copy them now, they are shown only once</h2>
+      <div id="codesList"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn small" id="copyAll" type="button">Copy all messages</button>
+        <button class="btn small ghost" id="downloadCsv" type="button">Download as CSV</button>
+        <button class="btn small ghost" id="hideCodes" type="button">Hide codes</button>
+        <span class="muted">After sending, delete any downloaded CSV file.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <input id="search" placeholder="Search ID or name" style="min-width:200px">
+        <select id="filter">
+          <option value="all">All students</option>
+          <option value="not">Not activated</option>
+          <option value="act">Activated</option>
+          <option value="blocked">Blocked</option>
+        </select>
+        <label class="muted">Code valid for
+          <select id="hours">
+            <option value="24">24 hours</option>
+            <option value="72" selected>72 hours</option>
+            <option value="168">7 days</option>
+          </select>
+        </label>
+        <span style="flex:1"></span>
+        <button class="btn" id="bulkBtn" type="button">Issue codes for all not activated</button>
+        <button class="btn ghost" id="refreshBtn" type="button">Refresh</button>
+      </div>
+      <div id="tableMsg" class="msg"></div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Student ID</th><th>Name</th><th>Account</th><th>Activated</th>
+          <th>Last login</th><th>Latest code</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Add student IDs to the allowed list</h2>
+      <p class="muted" style="margin:0 0 8px">One per line. You can add a name after a comma: <code>AE17083, Ivanov Ivan</code>. Existing IDs are not changed (only an empty name is filled in).</p>
+      <textarea id="addText" placeholder="AE17083, Ivanov Ivan&#10;AE17000&#10;AE17890"></textarea>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" id="addBtn" type="button">Add to list</button>
+        <span id="addMsg" class="msg"></span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(() => {
+  const CFG = window.SITE_CONFIG || {};
+  const $ = (id) => document.getElementById(id);
+  $("siteTitle").textContent = CFG.SITE_TITLE || "Aviation";
+  const sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_PUBLISHABLE_KEY);
+  const siteUrl = location.href.replace(/admin\.html.*$/, "");
+  let rows = [], myId = "", issued = [];
+
+  const fmt = (d) => d ? new Date(d).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—";
+  function el(tag, props, ...kids) {
+    const e = document.createElement(tag);
+    if (props) Object.assign(e, props);
+    for (const k of kids) e.append(k);
+    return e;
+  }
+  function msg(node, text, kind) { node.textContent = text || ""; node.className = "msg " + (kind || ""); }
+  function gate(text, withLogin) {
+    $("dash").hidden = true; $("gate").hidden = false; $("gate").textContent = text;
+    if (withLogin) {
+      $("gate").append(el("div", { style: "margin-top:12px" },
+        el("a", { href: "index.html?next=admin", className: "btn", textContent: "Go to login" })));
+    }
+  }
+
+  // ---------- Start: is this person an admin? (checked by the server) ----------
+  async function start() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return gate("Please log in with your admin student ID first.", true);
+    const { data: isAdmin, error } = await sb.rpc("is_admin");
+    if (error) return gate("Server error: " + error.message);
+    if (!isAdmin) return gate("This account has no admin rights.", true);
+    const { data: me } = await sb.from("students").select("student_id").maybeSingle();
+    myId = me ? me.student_id : "";
+    $("me").textContent = myId;
+    $("gate").hidden = true; $("dash").hidden = false;
+    load();
+  }
+
+  async function load() {
+    msg($("tableMsg"), "Loading…");
+    const { data, error } = await sb.rpc("admin_list_students");
+    if (error) return msg($("tableMsg"), "Error: " + error.message, "bad");
+    rows = data || [];
+    msg($("tableMsg"), "");
+    render();
+  }
+
+  function codePill(r) {
+    const map = {
+      none: ["No code", "p-grey"], used: ["Used", "p-good"], replaced: ["Replaced", "p-grey"],
+      locked: ["Locked (5 wrong tries)", "p-bad"], expired: ["Expired", "p-warn"],
+      waiting: ["Waiting until " + fmt(r.code_expires_at), "p-warn"],
+    };
+    const [txt, cls] = map[r.code_status] || [r.code_status, "p-grey"];
+    const p = el("span", { className: "pill " + cls, textContent: txt });
+    if (r.code_status === "waiting" && r.code_failed > 0) p.title = r.code_failed + " wrong tries so far";
+    return p;
+  }
+
+  function render() {
+    const q = $("search").value.trim().toLowerCase(), f = $("filter").value;
+    const tb = $("tbody"); tb.textContent = "";
+    let shown = 0;
+    for (const r of rows) {
+      const activated = !!r.activated_at;
+      if (f === "not" && (activated || !r.is_active)) continue;
+      if (f === "act" && !activated) continue;
+      if (f === "blocked" && r.is_active) continue;
+      if (q && !(r.student_id.toLowerCase().includes(q) || (r.full_name || "").toLowerCase().includes(q))) continue;
+      shown++;
+      const acc = !r.is_active ? el("span", { className: "pill p-bad", textContent: "Blocked" })
+        : activated ? el("span", { className: "pill p-good", textContent: "Active" })
+        : el("span", { className: "pill p-grey", textContent: "Not activated" });
+      const idCell = el("td", null, el("strong", { textContent: r.student_id }));
+      if (r.is_admin) idCell.append(" ", el("span", { className: "pill p-warn", textContent: "admin" }));
+
+      const codeBtn = el("button", { className: "btn small", type: "button",
+        textContent: activated ? "New code (reset password)" : "New code" });
+      codeBtn.onclick = () => issue([r.student_id], codeBtn);
+      const blockBtn = el("button", { className: "btn small " + (r.is_active ? "danger" : "ghost"), type: "button",
+        textContent: r.is_active ? "Block" : "Unblock" });
+      blockBtn.disabled = r.student_id === myId;
+      blockBtn.onclick = () => setActive(r, !r.is_active);
+
+      tb.append(el("tr", null,
+        idCell,
+        el("td", { textContent: r.full_name || "—" }),
+        el("td", null, acc),
+        el("td", { textContent: fmt(r.activated_at) }),
+        el("td", { textContent: fmt(r.last_sign_in_at) }),
+        el("td", null, codePill(r)),
+        el("td", { style: "white-space:nowrap" }, codeBtn, " ", blockBtn)));
+    }
+    if (!shown) tb.append(el("tr", null, el("td", { colSpan: 7, className: "muted", textContent: "No students match." })));
+
+    $("sTotal").textContent = rows.length;
+    $("sActive").textContent = rows.filter((r) => r.activated_at && r.is_active).length;
+    $("sWaiting").textContent = rows.filter((r) => !r.activated_at && r.is_active).length;
+    $("sCodes").textContent = rows.filter((r) => r.code_status === "waiting").length;
+    $("sBlocked").textContent = rows.filter((r) => !r.is_active).length;
+  }
+  $("search").oninput = render;
+  $("filter").onchange = render;
+  $("refreshBtn").onclick = load;
+
+  // ---------- Issue codes ----------
+  function messageFor(c) {
+    return "Aviation site — your access code\n" +
+      "Student ID: " + c.student + "\n" +
+      "Activation code: " + c.code + "\n" +
+      "Valid until: " + fmt(c.valid_until) + "\n" +
+      "1) Open " + siteUrl + "\n" +
+      "2) Choose “First time / New code”\n" +
+      "3) Enter your ID and this code, then create your own password.\n" +
+      "The code works only once. Do not share it.";
+  }
+  async function issue(ids, btn) {
+    const hours = parseInt($("hours").value, 10);
+    if (btn) btn.disabled = true;
+    let fails = [];
+    for (const id of ids) {
+      const { data, error } = await sb.rpc("admin_issue_code", { p_student_id: id, p_hours: hours });
+      if (error || !data || !data[0]) fails.push(id + (error ? " (" + error.message + ")" : ""));
+      else issued.unshift(data[0]);
+    }
+    if (btn) btn.disabled = false;
+    renderCodes();
+    msg($("tableMsg"), fails.length ? "Failed: " + fails.join(", ") : ids.length + " code(s) created.", fails.length ? "bad" : "good");
+    load();
+  }
+  $("bulkBtn").onclick = () => {
+    const ids = rows.filter((r) => !r.activated_at && r.is_active).map((r) => r.student_id);
+    if (!ids.length) return msg($("tableMsg"), "Everyone on the list is already activated.", "good");
+    if (!confirm("Create new codes for " + ids.length + " student(s) who have not activated yet?\n\nAny older unused code for these students will stop working.")) return;
+    issue(ids, $("bulkBtn"));
+  };
+  function renderCodes() {
+    const list = $("codesList"); list.textContent = "";
+    $("codesPanel").hidden = !issued.length;
+    for (const c of issued) {
+      const copy = el("button", { className: "btn small ghost", type: "button", textContent: "Copy message" });
+      copy.onclick = async () => { await navigator.clipboard.writeText(messageFor(c)); copy.textContent = "Copied ✓"; };
+      list.append(el("div", { className: "codeline" },
+        el("strong", { textContent: c.student }), el("code", { textContent: c.code }),
+        el("span", { className: "muted", textContent: "valid until " + fmt(c.valid_until) }), copy));
+    }
+  }
+  $("copyAll").onclick = async () => {
+    await navigator.clipboard.writeText(issued.map(messageFor).join("\n\n----------\n\n"));
+    $("copyAll").textContent = "Copied ✓";
+    setTimeout(() => ($("copyAll").textContent = "Copy all messages"), 2000);
+  };
+  $("downloadCsv").onclick = () => {
+    const csv = "student_id,code,valid_until\n" + issued.map((c) => [c.student, c.code, fmt(c.valid_until)].map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+    const a = el("a", { href: URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" })), download: "activation-codes.csv" });
+    document.body.append(a); a.click(); a.remove();
+  };
+  $("hideCodes").onclick = () => {
+    if (!confirm("Hide the codes? You will NOT be able to see them again (you can always create new ones).")) return;
+    issued = []; renderCodes();
+  };
+
+  // ---------- Block / unblock ----------
+  async function setActive(r, active) {
+    const text = active
+      ? "Unblock " + r.student_id + "? They will be able to open the site again."
+      : "Block " + r.student_id + "?\n\nThey will lose access to the site immediately. Nothing is deleted — you can unblock later.";
+    if (!confirm(text)) return;
+    const { error } = await sb.rpc("admin_set_active", { p_student_id: r.student_id, p_active: active });
+    if (error) return msg($("tableMsg"), "Error: " + error.message, "bad");
+    load();
+  }
+
+  // ---------- Add IDs ----------
+  $("addBtn").onclick = async () => {
+    const lines = $("addText").value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const good = [], bad = [];
+    for (const l of lines) {
+      const [rawId, ...rest] = l.split(/[,;\t]/);
+      const id = (rawId || "").trim().toUpperCase().replace(/\s+/g, "");
+      if (/^[A-Z0-9]{2,20}$/.test(id)) good.push({ id, name: rest.join(" ").trim() });
+      else bad.push(l);
+    }
+    if (bad.length) return msg($("addMsg"), "These lines are not valid IDs: " + bad.join(" | "), "bad");
+    if (!good.length) return msg($("addMsg"), "Nothing to add.", "bad");
+    $("addBtn").disabled = true;
+    const { data, error } = await sb.rpc("admin_add_students", { p_rows: good });
+    $("addBtn").disabled = false;
+    if (error) return msg($("addMsg"), "Error: " + error.message, "bad");
+    msg($("addMsg"), "Done: " + data + " row(s) added or updated.", "good");
+    $("addText").value = "";
+    load();
+  };
+
+  $("logoutBtn").onclick = async () => { await sb.auth.signOut(); location.href = "index.html"; };
+  start();
+})();
+</script>
+</body>
+</html>
